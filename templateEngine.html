@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Demo</title>
+</head>
+<body>
+    <div id="template">
+    
+    </div>
+    <script type="text/template" id="template">
+        <ul>
+            <%for(var i in list){%>
+                <li><a href="<%list[i].url%>"><%list[i].name%></a></li>
+            <%}%>
+        </ul>
+    </script>
+</body>
+<script type="text/javascript"> 
+ // 实现模板引擎的基本原理是解析模板，用正则匹配占位符，并区别占位符之间字符串类型，最后拼接成一个render函数的字符串，通过new Function()转换成真的函数
+ // 检索模板找出占位符： 1、若是变量，则将变量名直接push到code; 2、若是js语句比如for循环则直接拼接，3、否则将字符串push到code,注意转义一些特殊字符
+ // 技巧： 可以先写一个简单的render函数，再反推，在模板解析之后是如何取拼接出一个render函数
+ function TemplateEngine (templateId, data) {
+    var template = document.querySelector('script[id="' + templateId + '"]').innerHTML.replace(/[\r\t\n]/g, '');
+    var re = /<%([^%>]+)?%>/g, // 匹配占位符
+        reExp = /^()?(if|for|else|switch|case|break|{|})(.*)?/g, // 匹配js语句
+        code = "var r=[];\n",
+        pos = 0, // 起始位置
+        match;
+
+    var add = function (line, isExp) { // 遍历添加到render函数的字符串中去
+        isExp ? (code += line.match(reExp) ? line + '\n' : 'r.push(' + line + ');\n')
+              : (code += line != '' ? 'r.push("' + line.replace(/"/g, '\\"') + '");\n' : '');
+    }
+
+    while (match = re.exec(template)) {
+        add(template.slice(pos, match.index)); // 非占位符关联字符串拼接
+        add(match[1], true); // 占位符关联字符串拼接
+        pos = match[0].length + match.index // 记录模板已经匹配拼接的位置
+        console.log(match)
+    }
+    add(template.substr(pos, template.length - pos)); //拼接模板剩下的字符串
+    code += 'return r.join("");';
+    return new Function(code.replace(/[\r\t\n]/g, '')).apply(data);
+ }
+
+ var list = [{
+     url: 'url1',
+     name: 'test1'
+ },{
+     url: 'url2',
+     name: 'test2'
+ }];
+ 
+ var result = TemplateEngine('template', list)
+ console.log(result)
+ document.getElementById('template').innerHTML = result;
+
+</script>
+</html>
